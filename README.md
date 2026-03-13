@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Resume Analyzer AI
 
 An intelligent platform that helps job seekers create ATS-friendly resumes and match them with relevant opportunities.
@@ -53,6 +52,3 @@ Alternatively, you can run the helper script from the root directory:
 ```powershell
 .\run_app.ps1
 ```
-=======
-# Resume_Analyzer
->>>>>>> 539bc50d0176e77dc3626a1c557cffb47c734c04
