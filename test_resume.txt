@@ -1,0 +1,18 @@
+John Doe
+Email: johndoe@example.com
+Phone: 123-456-7890
+
+Summary
+Experienced Software Engineer with 5 years of experience in Python, JavaScript, and Cloud Technologies. Proven track record of delivering scalable web applications.
+
+Experience
+Software Engineer | Tech Corp | 2020 - Present
+- Led the migration of legacy monolith to microservices using FastAPI and Docker.
+- Improved system performance by 40% through code optimization.
+- Mentored junior developers and conducted code reviews.
+
+Education
+Bachelor of Science in Computer Science | University of Tech | 2016 - 2020
+
+Skills
+Python, JavaScript, React, Next.js, Docker, Kubernetes, AWS, SQL
