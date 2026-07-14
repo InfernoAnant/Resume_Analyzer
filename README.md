@@ -1,4 +1,4 @@
-# AI Resume Analyzer with ATS, Career Prediction & Secure Authentication
+# NLP Resume Analyzer with ATS, Career Prediction & Secure Authentication
 
 <!-- ![Project Preview](static/screenshots/home-page.png) -->
 
