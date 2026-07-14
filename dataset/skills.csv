@@ -1,0 +1,115 @@
+skill,category
+
+python,Programming
+java,Programming
+javascript,Programming
+typescript,Programming
+kotlin,Programming
+dart,Programming
+
+html,Frontend
+css,Frontend
+bootstrap,Frontend
+tailwind css,Frontend
+react,Frontend
+angular,Frontend
+nextjs,Frontend
+redux,Frontend
+
+flask,Backend
+django,Backend
+fastapi,Backend
+node.js,Backend
+express.js,Backend
+rest api,Backend
+jwt authentication,Backend
+sqlalchemy,Backend
+redis,Backend
+microservices,Backend
+celery,Backend
+backend architecture,Backend
+
+mysql,Database
+postgresql,Database
+mongodb,Database
+sqlite,Database
+
+tensorflow,AI Engineer
+pytorch,AI Engineer
+cnn,AI Engineer
+transformers,AI Engineer
+langchain,AI Engineer
+llm,AI Engineer
+opencv,AI Engineer
+computer vision,AI Engineer
+
+scikit-learn,Machine Learning
+mlflow,Machine Learning
+feature engineering,Machine Learning
+classification,Machine Learning
+model deployment,Machine Learning
+model training,Machine Learning
+model evaluation,Machine Learning
+hyperparameter tuning,Machine Learning
+
+pandas,Data Science
+numpy,Data Science
+statistics,Data Science
+matplotlib,Data Science
+jupyter notebook,Data Science
+data visualization,Data Science
+
+sql,Data Analyst
+power bi,Data Analyst
+excel,Data Analyst
+tableau,Data Analyst
+dashboard reporting,Data Analyst
+kpi analysis,Data Analyst
+
+jenkins,DevOps
+docker,DevOps
+kubernetes,DevOps
+ansible,DevOps
+prometheus,DevOps
+grafana,DevOps
+github actions,DevOps
+
+aws,Cloud
+ec2,Cloud
+s3,Cloud
+lambda,Cloud
+aws ec2,Cloud
+aws s3,Cloud
+aws lambda,Cloud
+azure vm,Cloud
+google cloud,Cloud
+cloudformation,Cloud
+vpc,Cloud
+iam,Cloud
+
+flutter,Mobile Development
+firebase,Mobile Development
+android studio,Mobile Development
+android sdk,Mobile Development
+cross platform,Mobile Development
+android development,Mobile Development
+mobile application,Mobile Development
+play store deployment,Mobile Development
+
+mern stack,Full Stack
+full stack architecture,Full Stack
+api integration,Full Stack
+frontend backend,Full Stack
+authentication,Full Stack
+
+selenium,QA
+automation testing,QA
+manual testing,QA
+api testing,QA
+postman,QA
+
+penetration testing,Cybersecurity
+ethical hacking,Cybersecurity
+kali linux,Cybersecurity
+wireshark,Cybersecurity
+metasploit,Cybersecurity
