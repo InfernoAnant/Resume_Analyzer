@@ -202,7 +202,7 @@ The system uses supervised machine learning trained on resume datasets to predic
 ## Project Structure
 
 ```text
-AI_Resume_Analyzer/
+NLP_Resume_Analyzer/
 
 ├── app.py
 ├── requirements.txt
