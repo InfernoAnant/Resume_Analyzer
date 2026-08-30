@@ -1,20 +1,17 @@
 import csv
 import math
+from functools import lru_cache
+from utils.logger import logger
 
-_skill_resources_cache = None
-
+@lru_cache(maxsize=1)
 def _load_skill_resources():
-    global _skill_resources_cache
-    if _skill_resources_cache is not None:
-        return _skill_resources_cache
-    
-    _skill_resources_cache = {}
+    cache = {}
     try:
         with open('dataset/skill_resources.csv', 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 skill = row['skill'].strip().lower()
-                _skill_resources_cache[skill] = {
+                cache[skill] = {
                     'name': skill,
                     'category': row.get('category', ''),
                     'difficulty': row.get('difficulty', 'Intermediate'),
@@ -24,9 +21,9 @@ def _load_skill_resources():
                     'resource_url': row.get('resource_url', f'https://www.google.com/search?q={skill.replace(" ", "+")}+tutorial')
                 }
     except Exception as e:
-        print(f"Error loading skill_resources.csv: {e}")
+        logger.error(f"Error loading skill_resources.csv: {e}")
         
-    return _skill_resources_cache
+    return cache
 
 def generate_roadmap(missing_skills, resume_skills, predicted_role, top_predictions=None, weekly_hours=10):
     resources = _load_skill_resources()

@@ -26,10 +26,10 @@ def generate_pdf_report(
     base_name = os.path.splitext(filename)[0]
     unique_id = uuid.uuid4().hex[:8]
 
-    os.makedirs("static/reports", exist_ok=True)
+    os.makedirs("storage/reports", exist_ok=True)
 
     report_path = os.path.join(
-        "static",
+        "storage",
         "reports",
         f"{base_name}_{unique_id}_report.pdf"
     )

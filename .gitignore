@@ -13,6 +13,9 @@ resume.db
 
 static/uploads/
 static/reports/
+storage/
+scratch/
+*.pdf
 
 static/chart.png
 

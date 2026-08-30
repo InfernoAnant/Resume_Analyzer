@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Version Comparison - NLPHire</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg shadow-sm">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="/"><i class="bi bi-robot"></i> <span>NLPHire</span></a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/history" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to History</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="mb-4 pb-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bolder mb-1">Resume Version Comparison</h2>
+                <p class="text-secondary mb-0">Comparing <strong>{{ diff.r1.filename }}</strong> vs <strong>{{ diff.r2.filename }}</strong></p>
+            </div>
+            <div class="text-end">
+                <span class="badge fs-5 {% if diff.score_delta >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                    Score Delta: {% if diff.score_delta > 0 %}+{% endif %}{{ diff.score_delta }}%
+                </span>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 h-100 p-4">
+                    <h5 class="fw-bold text-muted mb-3"><i class="bi bi-file-earmark-text"></i> Version 1 (Older)</h5>
+                    <h4>{{ diff.r1.filename }}</h4>
+                    <p class="text-secondary mb-1">Date: {{ diff.r1.created_at }}</p>
+                    <p class="text-secondary mb-1">Role Match: <strong>{{ diff.r1.role }}</strong></p>
+                    <h3 class="text-primary fw-bold mt-3">{{ diff.r1.score }}% ATS Score</h3>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 h-100 p-4">
+                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-file-earmark-check"></i> Version 2 (Revised)</h5>
+                    <h4>{{ diff.r2.filename }}</h4>
+                    <p class="text-secondary mb-1">Date: {{ diff.r2.created_at }}</p>
+                    <p class="text-secondary mb-1">Role Match: <strong>{{ diff.r2.role }}</strong></p>
+                    <h3 class="text-success fw-bold mt-3">{{ diff.r2.score }}% ATS Score</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- SKILLS DIFF BREAKDOWN -->
+        <div class="card shadow-sm border-0 p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-lightning-charge text-warning"></i> Skill Improvements & Diff</h5>
+            
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3">
+                        <h6 class="fw-bold text-success"><i class="bi bi-plus-circle"></i> Newly Added Skills ({{ diff.added_skills|length }})</h6>
+                        {% if diff.added_skills %}
+                            {% for skill in diff.added_skills %}
+                                <span class="badge bg-success me-1 mb-1">{{ skill }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <p class="small text-muted mb-0">No new skills added.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="p-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3">
+                        <h6 class="fw-bold text-danger"><i class="bi bi-dash-circle"></i> Removed Skills ({{ diff.removed_skills|length }})</h6>
+                        {% if diff.removed_skills %}
+                            {% for skill in diff.removed_skills %}
+                                <span class="badge bg-danger me-1 mb-1">{{ skill }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <p class="small text-muted mb-0">No skills removed.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                        <h6 class="fw-bold text-primary"><i class="bi bi-check-circle"></i> Retained Skills ({{ diff.retained_skills|length }})</h6>
+                        {% if diff.retained_skills %}
+                            {% for skill in diff.retained_skills %}
+                                <span class="badge bg-primary me-1 mb-1">{{ skill }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <p class="small text-muted mb-0">No common skills.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

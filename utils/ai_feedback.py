@@ -1,324 +1,69 @@
 from google import genai
 from dotenv import load_dotenv
 import os
+from cachetools import TTLCache
+from utils.logger import logger
 
 load_dotenv()
 
-# cache for repeated requests
-feedback_cache = {}
+# Bounded TTL Cache for AI feedback (1000 items max, 1 hour TTL)
+feedback_cache = TTLCache(maxsize=1000, ttl=3600)
 
-def get_ai_feedback(skills, score, role):
+import re
 
-    feedback = []
+def get_ai_feedback(skills, score, role, raw_text=""):
 
-    #LOCAL FALLBACK
-    if score < 30:
-        feedback.append(
-            "• Improve ATS score by adding more technical keywords."
-        )
-
-    if "sql" not in [s.lower() for s in skills]:
-        feedback.append(
-            "• Add SQL and database-related experience."
-        )
-
-    if "github" not in [s.lower() for s in skills]:
-        feedback.append(
-            "• Include GitHub profile and projects."
-        )
-
-    if "machine learning" not in [s.lower() for s in skills]:
-        feedback.append(
-            "• Add AI/ML related projects."
-        )
-
-    #QUICK LOCAL FEEDBACK
-    quick_feedback = {
-
-        "AI Engineer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build TensorFlow and PyTorch projects
-• Add model deployment experience
-• Improve deep learning portfolio
-
-Missing Skills:
-• Computer Vision
-• NLP
-• MLOps
-
-Career Advice:
-• Build production AI projects
-• Learn model optimization
-• Focus on real world datasets
-""",
-
-        "Machine Learning Engineer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build end to end ML pipeline projects
-• Improve model evaluation knowledge
-• Add predictive modeling projects
-
-Missing Skills:
-• Feature Engineering
-• MLflow
-• Hyperparameter Tuning
-
-Career Advice:
-• Learn production ML systems
-• Practice advanced model training
-• Focus on deployment pipelines
-""",
-
-        "Data Scientist": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Add data science case studies
-• Improve statistical modeling knowledge
-• Build predictive analytics projects
-
-Missing Skills:
-• Advanced Statistics
-• Feature Engineering
-• Model Interpretation
-
-Career Advice:
-• Work on real datasets
-• Improve analytical thinking
-• Build portfolio with research projects
-""",
-
-        "Data Analyst": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Add dashboard based projects
-• Improve SQL query skills
-• Work on business analytics projects
-
-Missing Skills:
-• Power BI
-• Tableau
-• Advanced SQL
-
-Career Advice:
-• Build analytics dashboards
-• Learn business reporting
-• Improve visualization skills
-""",
-
-        "Backend Developer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Add Flask/Django production projects
-• Improve REST API development skills
-• Add backend deployment experience
-
-Missing Skills:
-• Redis
-• Docker
-• PostgreSQL
-
-Career Advice:
-• Build scalable backend systems
-• Learn microservices architecture
-• Deploy live backend applications
-""",
-
-        "Frontend Developer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build modern React projects
-• Improve responsive UI design
-• Learn frontend optimization techniques
-
-Missing Skills:
-• TypeScript
-• Next.js
-• Redux
-
-Career Advice:
-• Build portfolio websites
-• Focus on UI/UX improvement
-• Learn advanced frontend frameworks
-""",
-
-        "Full Stack Developer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build full stack deployed projects
-• Improve API integration skills
-• Add authentication based projects
-
-Missing Skills:
-• Node.js
-• MongoDB
-• Docker
-
-Career Advice:
-• Build end to end applications
-• Learn system design
-• Deploy full stack apps online
-""",
-
-        "DevOps Engineer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Practice CI/CD pipeline creation
-• Improve infrastructure automation skills
-• Build cloud deployment projects
-
-Missing Skills:
-• Terraform
-• Kubernetes
-• Jenkins
-
-Career Advice:
-• Learn cloud architecture
-• Automate deployment pipelines
-• Build scalable infrastructure
-""",
-
-        "Cloud Engineer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build AWS/Azure deployment projects
-• Learn cloud security concepts
-• Practice infrastructure management
-
-Missing Skills:
-• AWS Lambda
-• VPC
-• CloudFormation
-
-Career Advice:
-• Get cloud certifications
-• Learn distributed systems
-• Build production cloud solutions
-""",
-
-        "Cybersecurity Analyst": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Practice penetration testing projects
-• Improve vulnerability assessment skills
-• Learn security monitoring tools
-
-Missing Skills:
-• SIEM Tools
-• Network Monitoring
-• Security Auditing
-
-Career Advice:
-• Practice ethical hacking labs
-• Learn advanced network security
-• Participate in security competitions
-""",
-
-        "Mobile Developer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build production mobile apps
-• Improve app performance optimization
-• Add cross platform app projects
-
-Missing Skills:
-• Firebase
-• API Integration
-• State Management
-
-Career Advice:
-• Build Play Store apps
-• Learn app architecture patterns
-• Focus on mobile UI design
-""",
-
-        "QA Engineer": """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Build automation testing projects
-• Improve test case writing skills
-• Practice API testing workflows
-
-Missing Skills:
-• Selenium
-• Postman
-• JUnit
-
-Career Advice:
-• Learn automated testing frameworks
-• Practice software quality assurance processes
-• Build real-world testing projects
-"""
-    }
-
-    #SKIP API FOR STRONG RESUME
-    if score >= 55:
-
-        return """
-Smart Resume Analysis
-
-Resume Improvement Suggestions:
-• Resume ATS score is already strong
-• Add measurable project achievements
-• Add internship experience
-
-Missing Skills:
-• Improve technical specialization
-• Add advanced real-world projects
-• Improve portfolio quality
-
-Career Advice:
-• Build production-level projects
-• Focus on one specialization
-• Keep GitHub portfolio updated
-"""
-
-    #USE LOCAL QUICK FEEDBACK
-    if score > 35 and role in quick_feedback:
-        return quick_feedback[role]
-
-    #CACHE CHECK
-    cache_key = f"{role}_{score//10}"
+    skills_lower = [s.lower() for s in skills]
+    cache_key = f"{role}_{','.join(sorted(skills_lower))}_{round(score)}"
 
     if cache_key in feedback_cache:
         return feedback_cache[cache_key]
 
-    #GEMINI API CALL
-    try:
+    # Detect projects in raw_text if present
+    project_matches = re.findall(r'(?:project|platform|app|system|build)[:\s\n–-]+([A-Z][A-Za-z0-9\s–-]+)', raw_text, re.IGNORECASE)
+    detected_projects = [p.strip() for p in project_matches if len(p.strip()) > 3 and len(p.strip()) < 30][:2]
 
+    has_github = "github" in skills_lower or bool(re.search(r'github\.com|\bgithub\b', raw_text, re.IGNORECASE))
+    has_git = "git" in skills_lower or bool(re.search(r'\bgit\b', raw_text, re.IGNORECASE))
+    has_docker = "docker" in skills_lower or bool(re.search(r'\bdocker\b', raw_text, re.IGNORECASE))
+    has_aws = "aws" in skills_lower or bool(re.search(r'\baws\b', raw_text, re.IGNORECASE))
+
+    # DYNAMIC GROUNDED LOCAL FALLBACK
+    dynamic_suggestions = []
+    if skills:
+        top_skills_str = ", ".join([s.title() for s in skills[:5]])
+        dynamic_suggestions.append(f"- Strong foundation in {top_skills_str}. Expand metric-driven impact bullet points.")
+    if detected_projects:
+        dynamic_suggestions.append(f"- Highlight technical architecture details for key projects ({', '.join(detected_projects)}).")
+
+    if not has_docker:
+        dynamic_suggestions.append("- Add containerization experience (Docker / Kubernetes) to demonstrate cloud-native deployment.")
+    if not has_aws:
+        dynamic_suggestions.append("- Highlight cloud platform experience (AWS / Azure / GCP) to strengthen DevOps profile.")
+    if not has_github:
+        dynamic_suggestions.append("- Link active GitHub portfolio repositories showcasing clean code structure.")
+
+    if not dynamic_suggestions:
+        dynamic_suggestions.append(f"- Quantify impact in experience section with measurable outcomes tailored to {role}.")
+
+    # GEMINI API CALL (Personalized AI Generation)
+    try:
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
             raise Exception("API key missing")
 
         prompt = f"""
-Resume review.
+Act as an executive hiring manager reviewing a resume for a {role} position.
+Candidate Extracted Skills: {', '.join(skills[:10])}
+Current ATS Quality Score: {score}/100
 
-Role: {role}
-Skills: {', '.join(skills[:8])}
-ATS Score: {score}
+Provide a personalized, concise evaluation:
+1. Top 2 specific strength observations based on extracted skills.
+2. Top 2 actionable resume improvement recommendations for a {role} role.
+3. 2 key skills to prioritize learning next.
 
-Give:
-3 resume improvements
-3 missing skills
-3 career suggestions
-
-Under 120 words.
-Simple bullet points only.
-No markdown.
+Keep total length under 120 words. Format with clean bullet points. Do not use markdown headers or asterisks.
 """
 
         client = genai.Client(api_key=api_key)
@@ -335,32 +80,26 @@ No markdown.
         ):
 
             text = response.text.strip()
-            text = text.replace("###", "")
-            text = text.replace("**", "")
-            text = text.replace("* ", "• ")
-
-            feedback_cache[cache_key] = text
-
-            return text
+            text = text.replace("###", "").replace("**", "").replace("* ", "- ")
+            final_text = f"[AI Tier - Gemini Powered]\n\n{text}"
+            feedback_cache[cache_key] = final_text
+            return final_text
 
         raise Exception("Empty Gemini response")
 
     except Exception as e:
-        print("Gemini Error:", str(e))
+        logger.info(f"Gemini API unavailable or missing ({str(e)}). Serving grounded local feedback tier.")
 
-        return f"""
-AI Generated Feedback Unavailable (Using Smart Local Analysis)
-
-Resume Improvement Suggestions:
-{chr(10).join(feedback[:3])}
-
-Missing Skills:
-• Add industry relevant technical skills
-• Add more project-based experience
-• Improve resume keyword optimization
-
-Career Advice:
-• Build more real-world projects
-• Keep resume ATS optimized
-• Add certifications and internship experience
-"""
+        nl = "\n"
+        skills_summary = ", ".join([s.title() for s in skills[:6]]) if skills else "technical skills"
+        local_feedback = (
+            f"[Deterministic Rule-Based Tier]\n\n"
+            f"Grounded Evaluation for {role} Profile:\n"
+            f"- Extracted Core Competencies: {skills_summary}.\n"
+            f"{nl.join(dynamic_suggestions[:3])}\n\n"
+            f"Prioritized Next Actions:\n"
+            f"- Add quantifiable metrics (e.g., % improvement, throughput) for recent software projects.\n"
+            f"- Align resume keywords directly with target {role} position descriptions."
+        )
+        feedback_cache[cache_key] = local_feedback
+        return local_feedback

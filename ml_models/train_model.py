@@ -78,14 +78,17 @@ X_test_vec = vectorizer.transform(X_test)
 
 print("\nVocabulary size:", len(vectorizer.vocabulary_))
 
-# MODEL
-model = LinearSVC(
-    C=2.0,class_weight="balanced",random_state=42,max_iter=5000
+from sklearn.calibration import CalibratedClassifierCV
+
+# MODEL WITH PROBABILITY CALIBRATION
+base_svc = LinearSVC(
+    C=1.0, class_weight="balanced", random_state=42, max_iter=5000
 )
+model = CalibratedClassifierCV(estimator=base_svc, cv=5)
 
 # CROSS VALIDATION
 cv_scores = cross_val_score(
-    model,X_train_vec,y_train,cv=5
+    model, X_train_vec, y_train, cv=5
 )
 
 print("\nCross Validation Accuracy:")
@@ -93,37 +96,37 @@ print(round(cv_scores.mean(), 4))
 
 # TRAIN MODEL
 model.fit(
-    X_train_vec,y_train
+    X_train_vec, y_train
 )
 
-# PREDICT
+# PREDICT PROBABILITIES AND CLASSES
 predictions = model.predict(
     X_test_vec
 )
 
 # EVALUATION
 accuracy = accuracy_score(
-    y_test,predictions
+    y_test, predictions
 )
 
-print("\nFinal Accuracy:")
-print(round(accuracy, 4))
+print("\nFinal Accuracy on Held-Out Test Set:")
+print(f"{round(accuracy * 100, 2)}%")
 print("\nClassification Report:\n")
 print(
     classification_report(
-        y_test,predictions
+        y_test, predictions
     )
 )
 
 # CONFUSION MATRIX
 cm = confusion_matrix(
-    y_test,predictions
+    y_test, predictions
 )
 
 print("\nConfusion Matrix:\n")
 print(cm)
 
-# show graph
+# Save plot non-interactively
 plt.figure(figsize=(14, 10))
 sns.heatmap(
     cm,
@@ -135,8 +138,9 @@ sns.heatmap(
 
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
-plt.title("Confusion Matrix")
-plt.show()
+plt.title(f"Confusion Matrix (Accuracy: {round(accuracy * 100, 2)}%)")
+plt.savefig("ml_models/confusion_matrix.png")
+plt.close()
 
 # SHOW CLASSES
 print("\nModel Classes:\n")

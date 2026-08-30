@@ -82,45 +82,107 @@
 
         <div class="col-lg-6" id="upload-section">
             <div class="card-custom border-0 shadow-lg p-4 p-md-5">
+                {% if show_recruiter_batch %}
+                <!-- TABS FOR SINGLE VS BATCH MODE -->
+                <ul class="nav nav-pills nav-justified mb-4" id="modeTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="single-tab" data-bs-toggle="pill" data-bs-target="#single-upload" type="button" role="tab" aria-controls="single-upload" aria-selected="true">
+                            <i class="bi bi-file-earmark-person"></i> Single Candidate
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="batch-tab" data-bs-toggle="pill" data-bs-target="#batch-upload" type="button" role="tab" aria-controls="batch-upload" aria-selected="false">
+                            <i class="bi bi-people"></i> Recruiter Batch
+                        </button>
+                    </li>
+                </ul>
+                {% else %}
                 <h4 class="mb-4 text-center">Analyze Your Resume</h4>
-                
+                {% endif %}
+
                 <!-- ERROR ALERT -->
                 {% if error %}
-                <div class="alert alert-danger mb-4 rounded-3 d-flex align-items-center gap-2">
+                <div class="alert alert-danger mb-4 rounded-3 d-flex align-items-center gap-2" role="alert" aria-live="assertive">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                     <div>{{ error }}</div>
                 </div>
                 {% endif %}
 
-                <form action="/analyze" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    
-                    <div class="dropzone-area mb-4" onclick="document.getElementById('resumeInput').click()">
-                        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
-                        <h5 class="fw-bold mb-1">Click to upload or drag and drop</h5>
-                        <p class="text-muted mb-0 small">PDF (Max 5MB)</p>
-                        <input type="file" id="resumeInput" name="resume" accept=".pdf" required onchange="handleFileSelect(this)">
+                <div class="tab-content" id="modeTabContent">
+                    <!-- SINGLE UPLOAD TAB -->
+                    <div class="tab-pane fade show active" id="single-upload" role="tabpanel" aria-labelledby="single-tab">
+                        <form action="/analyze" method="POST" enctype="multipart/form-data" onsubmit="showLoadingState(this)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            
+                            <div class="dropzone-area mb-4" onclick="document.getElementById('resumeInput').click()" role="button" aria-label="Upload PDF Resume">
+                                <i class="bi bi-cloud-arrow-up dropzone-icon" aria-hidden="true"></i>
+                                <h5 class="fw-bold mb-1">Click to upload or drag and drop</h5>
+                                <p class="text-muted mb-0 small">PDF (Max 10MB, up to 20 pages)</p>
+                                <input type="file" id="resumeInput" name="resume" accept=".pdf" required onchange="handleFileSelect(this)" aria-label="Select single PDF resume">
+                            </div>
+                            <div id="fileNameDisplay" class="text-center mb-3 fw-medium text-primary" style="display: none;" aria-live="polite"></div>
+
+                            <div class="mb-4 text-start">
+                                <label for="targetRoleInput" class="form-label font-weight-bold">Target Job Role <span class="text-muted fw-normal">(Optional)</span></label>
+                                <input type="text" id="targetRoleInput" class="form-control mb-3" name="target_role" placeholder="e.g. Backend Developer" aria-label="Target Job Role">
+                                
+                                <div class="d-flex align-items-center mb-3">
+                                    <hr class="flex-grow-1">
+                                    <span class="mx-3 text-muted small fw-medium">OR</span>
+                                    <hr class="flex-grow-1">
+                                </div>
+
+                                <label for="jobDescInput" class="form-label font-weight-bold">Target Job Description <span class="text-muted fw-normal">(Optional)</span></label>
+                                <textarea id="jobDescInput" class="form-control" name="job_description" rows="3" placeholder="Paste the full job description here..." aria-label="Target Job Description"></textarea>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fs-6">
+                                <i class="bi bi-magic me-1"></i> Generate AI Analysis
+                            </button>
+                        </form>
                     </div>
-                    <div id="fileNameDisplay" class="text-center mb-3 fw-medium text-primary" style="display: none;"></div>
 
-                    <div class="mb-4 text-start">
-                        <label class="form-label">Target Job Role <span class="text-muted fw-normal">(Optional)</span></label>
-                        <input type="text" class="form-control mb-3" name="target_role" placeholder="e.g. Backend Developer">
-                        
-                        <div class="d-flex align-items-center mb-3">
-                            <hr class="flex-grow-1">
-                            <span class="mx-3 text-muted small fw-medium">OR</span>
-                            <hr class="flex-grow-1">
-                        </div>
+                    {% if show_recruiter_batch %}
+                    <!-- BATCH UPLOAD TAB -->
+                    <div class="tab-pane fade" id="batch-upload" role="tabpanel" aria-labelledby="batch-tab">
+                        <form action="/batch-analyze" method="POST" enctype="multipart/form-data" onsubmit="showLoadingState(this)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            
+                            <div class="dropzone-area mb-4" onclick="document.getElementById('batchInput').click()" role="button" aria-label="Upload multiple PDF Resumes">
+                                <i class="bi bi-folder-symlink dropzone-icon text-primary" aria-hidden="true"></i>
+                                <h5 class="fw-bold mb-1">Select Multiple Candidate Resumes</h5>
+                                <p class="text-muted mb-0 small">PDF Files (Hold Ctrl / Shift to select multiple)</p>
+                                <input type="file" id="batchInput" name="resumes" accept=".pdf" multiple required onchange="handleBatchSelect(this)" aria-label="Select multiple PDF resumes">
+                            </div>
+                            <div id="batchDisplay" class="text-center mb-3 fw-medium text-primary" style="display: none;" aria-live="polite"></div>
 
-                        <label class="form-label">Target Job Description <span class="text-muted fw-normal">(Optional)</span></label>
-                        <textarea class="form-control" name="job_description" rows="3" placeholder="Paste the full job description here..."></textarea>
+                            <div class="mb-4 text-start">
+                                <label for="batchJdInput" class="form-label font-weight-bold">Job Description for Candidate Ranking <span class="text-danger">*</span></label>
+                                <textarea id="batchJdInput" class="form-control" name="job_description" rows="4" required placeholder="Paste the job description to rank candidates against..." aria-label="Job description for batch candidate ranking"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100 py-3 fs-6">
+                                <i class="bi bi-trophy me-1"></i> Rank Candidates Leaderboard
+                            </button>
+                        </form>
                     </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <button class="btn btn-primary w-100 py-3 fs-6">
-                        <i class="bi bi-magic"></i> Generate Analysis
-                    </button>
-                </form>
+    <!-- LOADING OVERLAY MODAL -->
+    <div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4">
+                <div class="modal-body py-4">
+                    <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2">Analyzing Resume with AI</h4>
+                    <p class="text-secondary mb-0">Running NLP skill extraction, ATS scoring, and role matching...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -213,8 +275,19 @@ function handleFileSelect(input) {
         }
     }
 }
-function validatePDF(input) {
-    handleFileSelect(input);
+function handleBatchSelect(input) {
+    let files = input.files;
+    let display = document.getElementById('batchDisplay');
+    if (files.length > 0) {
+        display.innerHTML = '<i class="bi bi-folder-check me-2"></i>' + files.length + ' PDF files selected for batch analysis';
+        display.style.display = 'block';
+    } else {
+        display.style.display = 'none';
+    }
+}
+function showLoadingState(form) {
+    var loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
 }
 </script>
 

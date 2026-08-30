@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nlphire_app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=production-secret-key-change-in-env
+      - DATABASE_URL=sqlite:///instance/resume.db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - app_storage:/app/storage
+    restart: unless-stopped
+
+volumes:
+  app_storage:

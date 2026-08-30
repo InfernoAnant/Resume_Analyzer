@@ -26,6 +26,13 @@ auth_bp = Blueprint(
     __name__
 )
 
+from utils.logger import logger
+
+# IN-MEMORY FAILED LOGIN TRACKER (email -> {"count": int, "lockout_until": datetime})
+FAILED_LOGINS = {}
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 15
+
 # REGISTER
 @auth_bp.route(
     "/register",
@@ -122,6 +129,7 @@ def register():
             email,
             hashed_password
         )
+        logger.info(f"New user registered successfully: {username}")
 
         return redirect("/login")
 
@@ -151,28 +159,50 @@ def login():
                 error="Please enter a valid email"
             )
 
+        # ACCOUNT LOCKOUT CHECK
+        now = datetime.now()
+        lockout_info = FAILED_LOGINS.get(email)
+        if lockout_info and lockout_info.get("lockout_until"):
+            if now < lockout_info["lockout_until"]:
+                remaining = int((lockout_info["lockout_until"] - now).total_seconds() / 60) + 1
+                logger.warning(f"Locked out login attempt for email: {email}")
+                return render_template(
+                    "login.html",
+                    error=f"Account temporarily locked due to repeated failed logins. Try again in {remaining} minute(s)."
+                )
+            else:
+                # Lockout expired
+                FAILED_LOGINS.pop(email, None)
+
         user = get_user_by_email(email)
 
-        # USER NOT FOUND
-        if not user:
+        # USER NOT FOUND OR PASSWORD MISMATCH
+        if not user or not check_password_hash(user[3], password):
+            # Record failed login attempt
+            entry = FAILED_LOGINS.setdefault(email, {"count": 0, "lockout_until": None})
+            entry["count"] += 1
+            if entry["count"] >= MAX_FAILED_ATTEMPTS:
+                entry["lockout_until"] = now + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+                logger.warning(f"Account locked out due to {MAX_FAILED_ATTEMPTS} failed attempts: {email}")
+                return render_template(
+                    "login.html",
+                    error=f"Account temporarily locked due to repeated failed logins. Try again in {LOCKOUT_DURATION_MINUTES} minutes."
+                )
+
+            logger.info(f"Failed login attempt for email: {email}")
             return render_template(
                 "login.html",
                 error="Invalid email or password"
             )
 
-        # PASSWORD CHECK
-        if check_password_hash(user[3], password):
+        # SUCCESSFUL LOGIN: Reset failed login count & ROTATE SESSION (Prevent Session Fixation)
+        FAILED_LOGINS.pop(email, None)
+        session.clear()
+        session["user_id"] = user[0]
+        session["username"] = user[1]
+        logger.info(f"User logged in: {user[1]}")
 
-            session["user_id"] = user[0]
-            session["username"] = user[1]
-
-            return redirect("/")
-
-        else:
-            return render_template(
-                "login.html",
-                error="Invalid email or password"
-            )
+        return redirect("/")
 
     return render_template("login.html")
 
@@ -199,8 +229,8 @@ def forgot_password():
             reset_link = url_for("auth.reset_password", token=token, _external=True)
             try:
                 send_reset_email(email, reset_link)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Failed to send reset email: {str(e)}")
 
         return render_template(
             "forgot_password.html",
@@ -281,6 +311,7 @@ def reset_password(token):
 
         # MARK USED
         mark_reset_token_used(record[0])
+        logger.info(f"Password reset successful for user_id: {user[0]}")
 
         return redirect("/login")
 
@@ -291,7 +322,6 @@ def reset_password(token):
 def logout():
 
     session.clear()
-
     return redirect("/login")
 
 
@@ -304,13 +334,27 @@ def delete_account():
         return redirect("/login")
 
     user_id = session["user_id"]
+    password = request.form.get("password", "").strip()
+
+    if not password:
+        return render_template(
+            "dashboard.html",
+            error="Please confirm your password to delete your account."
+        )
+
+    user = get_user_by_id(user_id)
+    if not user or not check_password_hash(user[3], password):
+        logger.warning(f"Failed account deletion attempt for user_id {user_id}: incorrect password")
+        return redirect("/dashboard?error=Incorrect+password+for+account+deletion")
 
     # DELETE USER + HISTORY
     delete_user_account(user_id)
+    logger.info(f"User account deleted: user_id {user_id}")
 
     # CLEAR SESSION
     session.clear()
 
     # GO TO REGISTER PAGE
     return redirect("/register")
+
 

@@ -1,4 +1,6 @@
+import re
 import pandas as pd
+from functools import lru_cache
 
 from utils.pdf_reader import extract_text_from_pdf
 from utils.skill_extractor import extract_skills
@@ -7,6 +9,7 @@ from utils.role_predictor import predict_role
 from utils.ai_feedback import get_ai_feedback
 
 
+@lru_cache(maxsize=1)
 def load_skills():
 
     df = pd.read_csv("dataset/skills.csv")
@@ -44,82 +47,50 @@ def analyze_resume(filepath):
     predictions = predict_role(text)
     predicted_role = predictions[0]["role"]
 
-    # SUGGESTIONS
+    # SUGGESTIONS (Accurate Text & Category Analysis)
     suggestions = []
 
-    if len(
-        categorized_skills.get(
-            "Programming",[]
-        )
-    ) < 2:
+    # 1. Programming Skills Check
+    if len(categorized_skills.get("Programming", [])) < 2:
+        suggestions.append("Add more core programming language skills (e.g. Python, Java, C++).")
 
-        suggestions.append(
-            "Add more programming skills."
-        )
+    # 2. Web Development Check (Frontend / Backend categories & text)
+    has_web_tech = (
+        len(categorized_skills.get("Frontend", [])) > 0
+        or len(categorized_skills.get("Backend", [])) > 0
+        or bool(re.search(r'\b(react|angular|vue|node|express|flask|django|fastapi|html|css|javascript|typescript|rest api)\b', text, re.IGNORECASE))
+    )
+    if not has_web_tech:
+        suggestions.append("Mention web development technologies and frameworks.")
 
-    if len(
-        categorized_skills.get(
-            "Web Development",
-            []
-        )
-    ) == 0:
+    # 3. AI/ML Projects & Skills Check (Machine Learning / AI Engineer categories & text)
+    has_aiml = (
+        len(categorized_skills.get("Machine Learning", [])) > 0
+        or len(categorized_skills.get("AI Engineer", [])) > 0
+        or bool(re.search(r'\b(nlp|machine learning|ai|deep learning|tensorflow|pytorch|llm|natural language processing)\b', text, re.IGNORECASE))
+    )
+    if not has_aiml:
+        suggestions.append("Add AI/ML or data-driven project experience.")
 
-        suggestions.append(
-            "Mention web development technologies."
-        )
+    # 4. GitHub Profile & Repository Check (Text search for github.com or github keyword)
+    has_github = "github" in [s.lower() for s in found_skills] or bool(re.search(r'github\.com|\bgithub\b', text, re.IGNORECASE))
+    if not has_github:
+        suggestions.append("Add GitHub profile or repository links.")
 
-    if len(
-        categorized_skills.get(
-            "AI/ML",
-            []
-        )
-    ) == 0:
-
-        suggestions.append(
-            "Add AI/ML related projects."
-        )
-
-    if "github" not in found_skills:
-
-        suggestions.append(
-            "Add GitHub profile."
-        )
-
+    # 5. ATS Quality Score Check
     if resume_quality_score < 40:
+        suggestions.append("Resume ATS score is low. Increase technical keywords and structured sections.")
 
-        suggestions.append(
-            "Resume ATS score is low."
-        )
+    if not suggestions:
+        suggestions.append("Excellent resume! Your profile contains strong technical keywords and section coverage.")
 
-    if len(
-        suggestions
-    ) == 0:
-
-        suggestions.append(
-            "Excellent resume! Your profile looks strong."
-        )
-
-    # AI FEEDBACK
-    if resume_quality_score < 60:
-
-        ai_feedback = get_ai_feedback(
-            found_skills,
-            resume_quality_score,
-            predicted_role
-        )
-
-    else:
-
-        ai_feedback = """
-Excellent resume profile.
-
-Your resume already contains strong technical skills and ATS-friendly keywords.
-
-Suggestions:
-- Add measurable achievements
-- Include GitHub portfolio links
-- Add internship experience
-"""
+    # AI FEEDBACK (Always Grounded Generator, No Hardcoded Boilerplate Static Strings)
+    ai_feedback = get_ai_feedback(
+        found_skills,
+        resume_quality_score,
+        predicted_role,
+        raw_text=text
+    )
 
     # RETURN RESULT
     return {
