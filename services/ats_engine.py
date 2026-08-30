@@ -1,11 +1,12 @@
 from services.jd_matcher import compare_resume_with_jd
 
 # CALCULATE ATS SCORE
-def calculate_ats_score(resume_text, job_description):
+def calculate_ats_score(resume_text, job_description=None, target_role=None):
 
     result = compare_resume_with_jd(
         resume_text,
-        job_description
+        job_description=job_description,
+        target_role=target_role
     )
 
     matched_skills = result[

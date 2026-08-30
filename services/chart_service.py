@@ -3,6 +3,8 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 from collections import Counter
+import io
+import base64
 
 def generate_dashboard_chart(roles):
 
@@ -20,8 +22,10 @@ def generate_dashboard_chart(roles):
     plt.ylabel("Count")
     plt.title("Role Distribution Analytics")
     plt.tight_layout()
-    chart_path = "static/chart.png"
-    plt.savefig(chart_path)
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-
-    return chart_path
+    
+    chart_data = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return chart_data

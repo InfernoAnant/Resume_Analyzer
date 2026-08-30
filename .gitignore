@@ -26,3 +26,4 @@ static/chart.png
 
 .DS_Store
 Thumbs.db
+debug_*.html

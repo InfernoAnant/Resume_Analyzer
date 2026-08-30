@@ -1,23 +1,29 @@
-from services.skill_extractor import extract_skills
+from utils.skill_extractor import extract_skills
+from services.resume_service import load_skills
 
 # MATCH RESUME VS JD
-def compare_resume_with_jd(resume_text, job_description):
+def compare_resume_with_jd(resume_text, job_description=None, target_role=None):
+    
+    skills_db = load_skills()
 
     # extract skills from resume
-    resume_skills = extract_skills(resume_text)
+    resume_skills, _ = extract_skills(resume_text, skills_db)
 
-    # extract skills from JD
-    jd_skills = extract_skills(job_description)
+    # get skills for JD or Role
+    jd_skills = []
+    if target_role:
+        from utils.role_skills_mapping import get_skills_for_role
+        jd_skills = get_skills_for_role(target_role)
+    elif job_description and job_description.strip():
+        jd_skills, _ = extract_skills(job_description, skills_db)
 
     # matched skills
     matched_skills = list(
-
         set(resume_skills) & set(jd_skills)
     )
 
     # missing skills
     missing_skills = list(
-
         set(jd_skills) - set(resume_skills)
     )
 

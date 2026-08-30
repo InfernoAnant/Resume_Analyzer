@@ -9,9 +9,12 @@ from flask import redirect
 
 from services.resume_service import analyze_resume
 from services.report_service import generate_pdf_report
-from models.database import save_resume
+from models.database import save_resume, auto_complete_skills
+from utils.pdf_reader import PDFExtractionError
 
 from services.ats_engine import calculate_ats_score
+from services.roadmap_generator import generate_roadmap, render_roadmap_svg
+from models.database import save_roadmap, get_history
 
 resume_bp = Blueprint(
     "resume",
@@ -50,14 +53,22 @@ def analyze():
 
     file = request.files["resume"]
 
-    # GET JOB DESCRIPTION
-    job_description = request.form.get(
-        "job_description", ""
-    )
+    # GET JOB DESCRIPTION & TARGET ROLE
+    job_description = request.form.get("job_description", "").strip()
+    target_role = request.form.get("target_role", "").strip()
+
+    # AUTO-DETECT ROLE IN JD FIELD
+    if not target_role and job_description:
+        from utils.role_skills_mapping import ROLE_SKILLS
+        if job_description.lower() in ROLE_SKILLS:
+            target_role = job_description.lower()
+            job_description = ""
 
     print(
         "\nJOB DESCRIPTION RECEIVED:\n",
-        job_description
+        job_description,
+        "\nTARGET ROLE RECEIVED:\n",
+        target_role
     )
 
     # EMPTY FILE CHECK
@@ -96,17 +107,35 @@ def analyze():
     # SAVE FILE
     file.save(filepath)
 
+    with open(filepath, "rb") as f:
+        header = f.read(5)
+    
+    if header != b"%PDF-":
+        os.remove(filepath)
+        return render_template(
+            "index.html",
+            error="Invalid file format. The file is not a valid PDF."
+        )
+
     # ANALYZE RESUME
-    result = analyze_resume(filepath)
+    try:
+        result = analyze_resume(filepath)
+    except PDFExtractionError as e:
+        os.remove(filepath)
+        return render_template(
+            "index.html",
+            error=str(e)
+        )
 
     # ATS + JOB DESCRIPTION MATCHING
     ats_result = None
 
-    if job_description.strip():
+    if job_description.strip() or target_role:
 
         ats_result = calculate_ats_score(
             result["raw_text"],
-            job_description
+            job_description=job_description,
+            target_role=target_role
         )
 
         print(
@@ -116,11 +145,34 @@ def analyze():
 
     # SAVE FOR CURRENT USER
     save_resume(
-
         session["user_id"],
         file.filename,
-        result["score"],
+        result["resume_quality_score"],
         result["role"],
+        result["skills"]
+    )
+
+    roadmap_data = None
+    if ats_result and ats_result.get("missing_skills"):
+        # Generate roadmap
+        roadmap_data = generate_roadmap(
+            ats_result["missing_skills"],
+            ats_result.get("matched_skills", []) + result["skills"],
+            result["role"]
+        )
+        
+        # Render the SVG
+        # SVG rendering removed in favor of native HTML\n        pass
+        
+        # Save to DB
+        records = get_history(session["user_id"])
+        if records:
+            resume_id = records[0][0]
+            save_roadmap(session["user_id"], resume_id, roadmap_data)
+
+    # AUTO COMPLETE SKILLS FOR ROADMAP
+    auto_complete_skills(
+        session["user_id"],
         result["skills"]
     )
 
@@ -128,12 +180,13 @@ def analyze():
     report_path = generate_pdf_report(
 
         file.filename,
-        result["score"],
+        result["resume_quality_score"],
         result["role"],
         result["skills"],
         result["suggestions"],
         result["ai_feedback"],
-        ats_result=ats_result
+        ats_result=ats_result,
+        roadmap_data=roadmap_data
     )
 
     # SHOW RESULT PAGE
@@ -147,7 +200,7 @@ def analyze():
             "categorized_skills"
         ],
 
-        score=result["score"],
+        resume_quality_score=result["resume_quality_score"],
 
         suggestions=result[
             "suggestions"
@@ -167,5 +220,6 @@ def analyze():
             "ai_feedback"
         ],
 
-        ats_result=ats_result
+        ats_result=ats_result,
+        roadmap_data=roadmap_data
     )

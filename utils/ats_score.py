@@ -1,4 +1,4 @@
-def calculate_ats_score(found_skills,resume_text):
+def calculate_resume_quality_score(found_skills,resume_text):
 
     found_skills = list(set(found_skills))
     skill_count = len(found_skills)

@@ -40,9 +40,12 @@
                 <a href="/logout" class="btn btn-secondary btn-sm">
                     Logout
                 </a>
-                <a href="/delete-account" onclick="return confirm('Are you sure? This will permanently delete your account and all resume history.')" class="btn btn-outline-danger btn-sm" title="Delete Account">
-                    <i class="bi bi-trash3"></i>
-                </a>
+                <form action="/delete-account" method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" onclick="return confirm('Are you sure? This will permanently delete your account and all resume history.')" class="btn btn-outline-danger btn-sm" title="Delete Account">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </form>
                 {% else %}
                 <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
                 <a href="/register" class="btn btn-primary btn-sm">Sign Up</a>
@@ -90,6 +93,7 @@
                 {% endif %}
 
                 <form action="/analyze" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div class="dropzone-area mb-4" onclick="document.getElementById('resumeInput').click()">
                         <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
@@ -100,8 +104,17 @@
                     <div id="fileNameDisplay" class="text-center mb-3 fw-medium text-primary" style="display: none;"></div>
 
                     <div class="mb-4 text-start">
+                        <label class="form-label">Target Job Role <span class="text-muted fw-normal">(Optional)</span></label>
+                        <input type="text" class="form-control mb-3" name="target_role" placeholder="e.g. Backend Developer">
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <hr class="flex-grow-1">
+                            <span class="mx-3 text-muted small fw-medium">OR</span>
+                            <hr class="flex-grow-1">
+                        </div>
+
                         <label class="form-label">Target Job Description <span class="text-muted fw-normal">(Optional)</span></label>
-                        <textarea class="form-control" name="job_description" rows="3" placeholder="Paste the job description here for tailored match scoring..."></textarea>
+                        <textarea class="form-control" name="job_description" rows="3" placeholder="Paste the full job description here..."></textarea>
                     </div>
 
                     <button class="btn btn-primary w-100 py-3 fs-6">

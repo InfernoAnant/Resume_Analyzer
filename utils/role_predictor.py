@@ -62,11 +62,9 @@ def predict_role(resume_text):
 
         # scaled display score
         raw_score = probabilities[idx] * 100
-        confidence = round(
-            min(
-                95,raw_score * 1.8
-            ),2
-        )
+        # Note: Using raw softmax pseudo-probability directly without artificial scaling.
+        # If values look too flat in testing, this may be due to decision_function-based pseudo-probabilities on multi-class SVM.
+        confidence = round(raw_score, 2)
 
         top_predictions.append({
             "role": role,

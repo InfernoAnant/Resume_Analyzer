@@ -50,7 +50,7 @@ def extract_skills(text, skills_db):
             skill_clean = skill_clean.replace("-", " ")
 
             # better matching
-            if skill_clean in text:
+            if re.search(r'\b' + re.escape(skill_clean) + r'\b', text):
 
                 if skill not in found_skills:
 

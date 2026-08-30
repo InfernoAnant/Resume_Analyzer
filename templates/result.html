@@ -58,23 +58,23 @@
         <!-- ATS SCORE -->
         <div class="col-lg-4 d-flex">
             <div class="card-custom border-0 w-100 text-center animate-fade-in delay-1">
-                <h5 class="fw-bold mb-4 text-secondary">ATS Compatibility Score</h5>
+                <h5 class="fw-bold mb-4 text-secondary">Resume Quality Score</h5>
                 
                 <div class="score-circle-wrapper">
                     <!-- Inline style sets the progress variable for the conic-gradient -->
-                    <div class="score-circle" style="--progress: {{ score }}%;">
+                    <div class="score-circle" style="--progress: {{ resume_quality_score }}%;">
                         <div class="score-circle-text">
-                            {{ score }}<span>%</span>
+                            {{ resume_quality_score }}<span>%</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-4">
-                    {% if score >= 80 %}
+                    {% if resume_quality_score >= 80 %}
                         <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2 fs-6 rounded-pill">
                             <i class="bi bi-check-circle-fill me-1"></i> Excellent Match
                         </span>
-                    {% elif score >= 60 %}
+                    {% elif resume_quality_score >= 60 %}
                         <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle px-3 py-2 fs-6 rounded-pill">
                             <i class="bi bi-exclamation-triangle-fill me-1"></i> Strong Resume
                         </span>
@@ -170,9 +170,62 @@
                         <p class="text-muted fst-italic">No missing skills detected.</p>
                     {% endif %}
                 </div>
+                
+                {% if ats_result and ats_result.missing_skills %}
+                <div class="mt-4 w-100">
+                    <p class="text-muted small mb-0"><i class="bi bi-info-circle me-1"></i> See the roadmap below to learn these skills.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
+
+    {% if roadmap_data and roadmap_data.phases %}
+    <section id="roadmap-section" style="margin-top: 3rem;" class="animate-fade-in delay-4">
+        <h2 class="fw-bold mb-4 d-flex align-items-center gap-2 text-secondary">
+            <i class="bi bi-map-fill text-primary"></i> Your path to closing these gaps
+        </h2>
+
+        <div class="roadmap-timeline">
+            {% for phase in roadmap_data.phases %}
+            <div class="roadmap-phase phase-{{ phase.phase }}">
+                <div class="phase-marker"></div>
+                <div class="phase-content">
+                    <div class="phase-header d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0 fw-bold">{{ phase.title }} Phase</h4>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">{{ phase.weeks }} Weeks</span>
+                    </div>
+                    
+                    <div class="phase-nodes">
+                        {% for skill in phase.skills %}
+                        <a href="{{ skill.resource_url }}" target="_blank" class="roadmap-node text-decoration-none">
+                            <div class="node-content">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="node-title fw-bold text-dark fs-5 text-capitalize">{{ skill.name }}</span>
+                                    <span class="node-hours text-muted small"><i class="bi bi-clock"></i> {{ skill.hours }} hrs</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    {% if skill.difficulty == 'Beginner' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Beginner</span>
+                                    {% elif skill.difficulty == 'Intermediate' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Intermediate</span>
+                                    {% else %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">Advanced</span>
+                                    {% endif %}
+                                </div>
+                                <span class="node-link-text text-primary small fw-medium d-flex align-items-center gap-1">
+                                    <i class="bi bi-box-arrow-up-right"></i> {{ skill.resource_title }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
     {% endif %}
 
     <!-- OVERALL EXTRACTED SKILLS -->

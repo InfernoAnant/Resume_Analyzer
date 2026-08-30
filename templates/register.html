@@ -57,6 +57,7 @@
             {% endif %}
 
             <form method="POST" action="/register">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 
                 <div class="form-floating mb-3">
                     <input type="text" name="username" class="form-control" id="floatingUsername" placeholder="Username" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" title="Username can contain only letters, numbers and underscore" required>

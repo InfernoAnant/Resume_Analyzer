@@ -2,7 +2,7 @@ import pandas as pd
 
 from utils.pdf_reader import extract_text_from_pdf
 from utils.skill_extractor import extract_skills
-from utils.ats_score import calculate_ats_score
+from utils.ats_score import calculate_resume_quality_score
 from utils.role_predictor import predict_role
 from utils.ai_feedback import get_ai_feedback
 
@@ -38,7 +38,7 @@ def analyze_resume(filepath):
     found_skills, categorized_skills = extract_skills(text, skills_db)
 
     # ATS SCORE
-    ats_score = calculate_ats_score(found_skills, text)
+    resume_quality_score = calculate_resume_quality_score(found_skills, text)
 
     # ML PREDICTION
     predictions = predict_role(text)
@@ -85,7 +85,7 @@ def analyze_resume(filepath):
             "Add GitHub profile."
         )
 
-    if ats_score < 40:
+    if resume_quality_score < 40:
 
         suggestions.append(
             "Resume ATS score is low."
@@ -100,11 +100,11 @@ def analyze_resume(filepath):
         )
 
     # AI FEEDBACK
-    if ats_score < 60:
+    if resume_quality_score < 60:
 
         ai_feedback = get_ai_feedback(
             found_skills,
-            ats_score,
+            resume_quality_score,
             predicted_role
         )
 
@@ -131,7 +131,7 @@ Suggestions:
 
         "categorized_skills": categorized_skills,
 
-        "score": ats_score,
+        "resume_quality_score": resume_quality_score,
 
         "role": predicted_role,
 
